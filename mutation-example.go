@@ -114,11 +114,6 @@ var mutationType = graphql.NewObject(graphql.ObjectConfig{
 })
 
 func main() {
-	db, err := sql.Open("sqlite3", "./tutorials.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
 
 	// Schema
 	fields := graphql.Fields{
@@ -133,8 +128,13 @@ func main() {
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				id, ok := p.Args["id"].(int)
 				if ok {
+					db, err := sql.Open("sqlite3", "./tutorials.db")
+					if err != nil {
+						log.Fatal(err)
+					}
+					defer db.Close()
 					var tutorial Tutorial
-					err := db.QueryRow("SELECT * FROM tutorials where ID = ?", id).Scan(&tutorial.ID, &tutorial.Title)
+					err = db.QueryRow("SELECT ID, Title FROM tutorials where ID = ?", id).Scan(&tutorial.ID, &tutorial.Title)
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -184,9 +184,26 @@ func main() {
 	}
 
 	// Query
+	// query := `
+	// 	mutation {
+	// 		create(id: 5, title: "My Awesome Post") {
+	// 			id
+	// 			title
+	// 		}
+	// 	}
+	// `
+	// params := graphql.Params{Schema: schema, RequestString: query}
+	// r := graphql.Do(params)
+	// if len(r.Errors) > 0 {
+	// 	log.Fatalf("failed to execute graphql operation, errors: %+v", r.Errors)
+	// }
+	// rJSON, _ := json.Marshal(r)
+	// fmt.Printf("%s \n", rJSON)
+
+	// Query
 	query := `
-		mutation {
-			create(id: 5, title: "My Awesome Post") {
+		{
+			tutorial(id: 1) {
 				id
 				title
 			}
@@ -198,23 +215,6 @@ func main() {
 		log.Fatalf("failed to execute graphql operation, errors: %+v", r.Errors)
 	}
 	rJSON, _ := json.Marshal(r)
-	fmt.Printf("%s \n", rJSON)
-
-	// Query
-	query = `
-		{
-			tutorial(id: 5) {
-				id
-				title
-			}
-		}
-	`
-	params = graphql.Params{Schema: schema, RequestString: query}
-	r = graphql.Do(params)
-	if len(r.Errors) > 0 {
-		log.Fatalf("failed to execute graphql operation, errors: %+v", r.Errors)
-	}
-	rJSON, _ = json.Marshal(r)
 	fmt.Printf("%s \n", rJSON)
 
 }
