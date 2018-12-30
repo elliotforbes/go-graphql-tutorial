@@ -44,63 +44,58 @@ func init() {
 	}
 	defer db.Close()
 	db.AutoMigrate(&Tutorial{})
+	db.AutoMigrate(&Comment{})
+	db.AutoMigrate(&Author{})
 }
 
-func SetupSchema() graphql.Fields {
-	// Schema
-	fields := graphql.Fields{
-		"tutorial": &graphql.Field{
-			Type:        tutorialType,
-			Description: "Get Tutorial By ID",
-			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{
-					Type: graphql.Int,
-				},
-			},
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				var tutorial Tutorial
-				db, _ := gorm.Open("sqlite3", "tutorials.db")
-				db.First(&tutorial, params.Args["id"].(int))
-				return tutorial, nil
+func SingleTutorialSchema() *graphql.Field {
+	return &graphql.Field{
+		Type:        tutorialType,
+		Description: "Get Tutorial By ID",
+		Args: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Type: graphql.Int,
 			},
 		},
-		"list": &graphql.Field{
-			Type:        graphql.NewList(tutorialType),
-			Description: "Get Tutorial List",
-			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				var tutorials []Tutorial
-				db, _ := gorm.Open("sqlite3", "tutorials.db")
-				db.Find(&tutorials)
-				return tutorials, nil
-			},
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			var tutorial Tutorial
+			db, _ := gorm.Open("sqlite3", "tutorials.db")
+			db.First(&tutorial, params.Args["id"].(int))
+			return tutorial, nil
 		},
 	}
-	return fields
 }
 
-func SetupTutorialMutations() *graphql.Object {
-	tutorialMutationType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "Mutation",
-		Fields: graphql.Fields{
-			"create": &graphql.Field{
-				Type:        tutorialType,
-				Description: "Create a new Tutorial",
-				Args: graphql.FieldConfigArgument{
-					"id": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.Int),
-					},
-					"title": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-				},
-				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-					tutorial := Tutorial{ID: params.Args["id"].(int), Title: params.Args["title"].(string)}
-					db, _ := gorm.Open("sqlite3", "tutorials.db")
-					db.Save(&tutorial)
-					return tutorial, nil
-				},
+func ListTutorialSchema() *graphql.Field {
+	return &graphql.Field{
+		Type:        graphql.NewList(tutorialType),
+		Description: "Get Tutorial List",
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			var tutorials []Tutorial
+			db, _ := gorm.Open("sqlite3", "tutorials.db")
+			db.Find(&tutorials)
+			return tutorials, nil
+		},
+	}
+}
+
+func CreateTutorialMutation() *graphql.Field {
+	return &graphql.Field{
+		Type:        tutorialType,
+		Description: "Create a new Tutorial",
+		Args: graphql.FieldConfigArgument{
+			"id": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(graphql.Int),
+			},
+			"title": &graphql.ArgumentConfig{
+				Type: graphql.NewNonNull(graphql.String),
 			},
 		},
-	})
-	return tutorialMutationType
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			tutorial := Tutorial{ID: params.Args["id"].(int), Title: params.Args["title"].(string)}
+			db, _ := gorm.Open("sqlite3", "tutorials.db")
+			db.Save(&tutorial)
+			return tutorial, nil
+		},
+	}
 }
